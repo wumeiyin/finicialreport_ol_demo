@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能经营分析系统</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #4CAF50;
+            --error: #dc3545;
+        }
+        body {
+            font-family: '微软雅黑', sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 20px;
+            background: #f8f9fa;
+        }
+        .header {
+            text-align: center;
+            padding: 2rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        .upload-box {
+            border: 2px dashed var(--secondary);
+            padding: 2rem;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .file-input {
+            margin: 1rem 0;
+            padding: 0.8rem;
+            width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+        .file-input:hover {
+            border-color: var(--secondary);
+        }
+        .submit-btn {
+            background: var(--secondary);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: block;
+            margin: 1.5rem auto;
+        }
+        .submit-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .progress-container {
+            width: 80%;
+            margin: 2rem auto;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .error-box {
+            color: var(--error);
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 2px solid var(--error);
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>企业经营分析报告生成系统</h1>
+        <p>上传数据，一键生成专业分析报告</p>
+    </div>
+
+    <div class="upload-box">
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <h3>第一步：上传数据文件 (必选)</h3>
+                <input class="file-input" type="file" name="excel" accept=".xls,.xlsx" required>
+            </div>
+            
+            <div class="form-group">
+                <h3>第二步：上传模板文件 (可选)</h3>
+                <input class="file-input" type="file" name="template" accept=".docx,.pdf">
+            </div>
+
+            <button type="button" class="submit-btn" onclick="startAnalysis()">🚀 开始智能分析</button>
+        </form>
+    </div>
+
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-text" id="progressText"></div>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <script>
+        async function startAnalysis() {
+            const formData = new FormData(document.getElementById('uploadForm'))
+            const progress = document.getElementById('progressContainer')
+            const errorBox = document.getElementById('errorBox')
+            
+            try {
+                // 重置状态
+                errorBox.style.display = 'none'
+                progress.style.display = 'block'
+                updateProgress(10, '正在校验文件...')
+
+                // 发送请求
+                updateProgress(30, '正在上传数据...')
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                })
+
+                // 处理响应
+                if (!response.ok) {
+                    const error = await response.json()
+                    throw new Error(error.error || '服务器处理异常')
+                }
+
+                // 下载报告
+                updateProgress(80, '正在生成文档...')
+                const blob = await response.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `经营分析报告_${new Date().toLocaleDateString().replace(/\//g, '-')}.docx`
+                a.click()
+                URL.revokeObjectURL(url)
+
+                updateProgress(100, '生成完成!')
+                setTimeout(() => progress.style.display = 'none', 2000)
+
+            } catch (error) {
+                errorBox.innerHTML = `⚠️ ${error.message}<br>建议操作：<br>1. 检查文件格式<br>2. 稍后重试`
+                errorBox.style.display = 'block'
+                updateProgress(0, '发生错误')
+                progress.style.display = 'none'
+            }
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = percent + '%'
+            document.getElementById('progressText').textContent = text
+        }
+    </script>
+</body>
+</html>
